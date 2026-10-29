@@ -1,0 +1,13 @@
+# 构建输出目录
+/build/
+build*/
+
+# Qt Creator 用户配置文件
+*.user
+*.user.*
+CMakeLists.txt.user*
+
+# 临时与缓存文件
+.cache/
+*.swp
+*.tmp
