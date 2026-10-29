@@ -52,6 +52,10 @@ void MainWindow::handleInput(const QString &key)
         clearAll();
     } else if (key == "backspace") {
         backspace();
+    } else if (key == "=") {
+        calculate();
+    } else if (key == "+" || key == "-" || key == "*" || key == "/") {
+        inputOperator(key);
     } else if (key == ".") {
         inputDot();
     } else if (key.length() == 1 && key.at(0).isDigit()) {
@@ -73,6 +77,16 @@ void MainWindow::onButtonClicked()
         handleInput(name.right(1));        // btnDigit7 -> "7"
     } else if (name == QLatin1String("btnDot")) {
         handleInput(".");
+    } else if (name == QLatin1String("btnPlus")) {
+        handleInput("+");
+    } else if (name == QLatin1String("btnMinus")) {
+        handleInput("-");
+    } else if (name == QLatin1String("btnMultiply")) {
+        handleInput("*");
+    } else if (name == QLatin1String("btnDivide")) {
+        handleInput("/");
+    } else if (name == QLatin1String("btnEquals")) {
+        handleInput("=");
     } else if (name == QLatin1String("btnBackspace")) {
         handleInput("backspace");
     } else if (name == QLatin1String("btnClear")) {
@@ -111,13 +125,74 @@ void MainWindow::inputDot()
     updateDisplay();
 }
 
+// ---------------------------------------------------------------------------
+// 输入运算符
+// ---------------------------------------------------------------------------
 void MainWindow::inputOperator(const QString &op)
 {
-    Q_UNUSED(op);   // 运算逻辑将在后续迭代中实现
+    if (m_pendingOperator.isEmpty()) {
+        // 没有待执行的操作符：把当前值作为第一操作数
+        m_firstOperand = m_currentInput.toDouble();
+        m_pendingOperator = op;
+        m_waitingForOperand = true;                 // 等待输入第二操作数
+        m_expression = formatNumber(m_firstOperand) + " " + op + " ";
+    } else {
+        // 已有操作符：先计算中间结果，再继续运算（连续运算）
+        calculate();
+        m_firstOperand = m_currentInput.toDouble();
+        m_pendingOperator = op;
+        m_waitingForOperand = true;
+        m_expression = formatNumber(m_firstOperand) + " " + op + " ";
+    }
+    updateDisplay();
 }
 
+// ---------------------------------------------------------------------------
+// 计算并显示结果
+// ---------------------------------------------------------------------------
 void MainWindow::calculate()
 {
+    if (m_pendingOperator.isEmpty())   // 没有操作符，无需计算
+        return;
+
+    // 第二操作数：若用户还没输入（如 5 + =），则以第一操作数为第二操作数
+    const double second = m_waitingForOperand ? m_firstOperand : m_currentInput.toDouble();
+    const double first = m_firstOperand;
+
+    double result = 0.0;
+    bool ok = true;
+    if (m_pendingOperator == "+") {
+        result = first + second;
+    } else if (m_pendingOperator == "-") {
+        result = first - second;
+    } else if (m_pendingOperator == "*") {
+        result = first * second;
+    } else if (m_pendingOperator == "/") {
+        if (second == 0.0) {         // 除数为 0 → 错误状态
+            ok = false;
+        } else {
+            result = first / second;
+        }
+    }
+
+    if (!ok) {
+        m_hasError = true;
+        m_waitingForOperand = true;
+        m_pendingOperator.clear();
+        m_expression.clear();
+        m_currentInput = "错误：除数不能为0";
+        updateDisplay();
+        return;
+    }
+
+    // 记录完整表达式便于用户查看
+    m_expression = formatNumber(first) + " " + m_pendingOperator + " "
+                 + formatNumber(second) + " =";
+    m_currentInput = formatNumber(result);
+    m_firstOperand = result;           // 结果可作为下一次运算的第一操作数
+    m_pendingOperator.clear();
+    m_waitingForOperand = true;        // 结果已显示，等待新的输入
+    updateDisplay();
 }
 
 // ---------------------------------------------------------------------------
@@ -126,7 +201,7 @@ void MainWindow::calculate()
 void MainWindow::backspace()
 {
     if (m_waitingForOperand)
-        return;                    // 等待新操作数时退格无操作
+        return;                        // 等待新操作数时退格无操作
     if (m_currentInput.length() > 1) {
         m_currentInput.chop(1);
     } else {
@@ -158,7 +233,13 @@ void MainWindow::updateDisplay()
     ui->expressionLabel->setText(m_expression);
 }
 
+// ---------------------------------------------------------------------------
+// 数字格式化：避免浮点精度造成多余尾数（如 0.1+0.2 -> 0.3）
+// ---------------------------------------------------------------------------
 QString MainWindow::formatNumber(double value) const
 {
-    return QString::number(value, 'g', 12);
+    QString s = QString::number(value, 'g', 12);
+    if (s == "-0")                 // 修正负零显示
+        s = "0";
+    return s;
 }
