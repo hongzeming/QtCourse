@@ -39,8 +39,45 @@ MainWindow::~MainWindow()
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
-    // 键盘事件将在后续迭代中实现
-    QMainWindow::keyPressEvent(event);
+    switch (event->key()) {
+    case Qt::Key_0: case Qt::Key_1: case Qt::Key_2: case Qt::Key_3: case Qt::Key_4:
+    case Qt::Key_5: case Qt::Key_6: case Qt::Key_7: case Qt::Key_8: case Qt::Key_9:
+        handleInput(QString::number(event->key() - Qt::Key_0));  // 主键盘与数字小键盘均适用
+        break;
+    case Qt::Key_Period:
+    case Qt::Key_Comma:                    // 小键盘小数点可能是逗号
+        handleInput(".");
+        break;
+    case Qt::Key_Plus:
+        handleInput("+");
+        break;
+    case Qt::Key_Minus:
+        handleInput("-");
+        break;
+    case Qt::Key_Asterisk:
+    case Qt::Key_multiply:
+        handleInput("*");
+        break;
+    case Qt::Key_Slash:
+    case Qt::Key_division:
+        handleInput("/");
+        break;
+    case Qt::Key_Equal:
+    case Qt::Key_Return:
+    case Qt::Key_Enter:                    // = / 回车 均表示计算结果
+        handleInput("=");
+        break;
+    case Qt::Key_Backspace:
+        handleInput("backspace");
+        break;
+    case Qt::Key_Escape:
+    case Qt::Key_Delete:                   // Esc / Delete 均表示清除
+        handleInput("clear");
+        break;
+    default:
+        QMainWindow::keyPressEvent(event);
+        break;
+    }
 }
 
 // ---------------------------------------------------------------------------
