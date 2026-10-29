@@ -99,6 +99,9 @@ void MainWindow::onButtonClicked()
 // ---------------------------------------------------------------------------
 void MainWindow::inputDigit(const QString &digit)
 {
+    if (m_hasError) {              // 出错后按数字：整体重置后从新数字开始
+        clearAll();
+    }
     if (m_waitingForOperand) {     // 新操作数从第一个数字开始（覆盖旧显示）
         m_currentInput = digit;
         m_waitingForOperand = false;
@@ -115,6 +118,9 @@ void MainWindow::inputDigit(const QString &digit)
 // ---------------------------------------------------------------------------
 void MainWindow::inputDot()
 {
+    if (m_hasError) {
+        clearAll();
+    }
     if (m_waitingForOperand) {
         m_currentInput = "0.";
         m_waitingForOperand = false;
@@ -130,14 +136,21 @@ void MainWindow::inputDot()
 // ---------------------------------------------------------------------------
 void MainWindow::inputOperator(const QString &op)
 {
+    if (m_hasError)               // 错误状态下忽略操作符，须先按 C 或数字
+        return;
+
     if (m_pendingOperator.isEmpty()) {
-        // 没有待执行的操作符：把当前值作为第一操作数
+        // 情况1：还没有操作符 → 当前值作为第一操作数
         m_firstOperand = m_currentInput.toDouble();
         m_pendingOperator = op;
         m_waitingForOperand = true;                 // 等待输入第二操作数
         m_expression = formatNumber(m_firstOperand) + " " + op + " ";
+    } else if (m_waitingForOperand) {
+        // 情况2：连续按操作符（如 1 + +）→ 替换上一个操作符
+        m_pendingOperator = op;
+        m_expression = formatNumber(m_firstOperand) + " " + op + " ";
     } else {
-        // 已有操作符：先计算中间结果，再继续运算（连续运算）
+        // 情况3：已有两个操作数 → 先算出中间结果，再继续运算（连续运算）
         calculate();
         m_firstOperand = m_currentInput.toDouble();
         m_pendingOperator = op;
@@ -152,6 +165,8 @@ void MainWindow::inputOperator(const QString &op)
 // ---------------------------------------------------------------------------
 void MainWindow::calculate()
 {
+    if (m_hasError)
+        return;
     if (m_pendingOperator.isEmpty())   // 没有操作符，无需计算
         return;
 
@@ -189,7 +204,7 @@ void MainWindow::calculate()
     m_expression = formatNumber(first) + " " + m_pendingOperator + " "
                  + formatNumber(second) + " =";
     m_currentInput = formatNumber(result);
-    m_firstOperand = result;           // 结果可作为下一次运算的第一操作数
+    m_firstOperand = result;           // 结果可作为下一次运算的第一操作数（结果后继续运算）
     m_pendingOperator.clear();
     m_waitingForOperand = true;        // 结果已显示，等待新的输入
     updateDisplay();
@@ -200,8 +215,16 @@ void MainWindow::calculate()
 // ---------------------------------------------------------------------------
 void MainWindow::backspace()
 {
-    if (m_waitingForOperand)
-        return;                        // 等待新操作数时退格无操作
+    if (m_hasError)
+        return;
+    if (m_waitingForOperand) {
+        // 等待第二操作数时退格：撤销刚输入的操作符（回到第一操作数状态）
+        if (!m_pendingOperator.isEmpty()) {
+            m_pendingOperator.clear();
+            m_expression.clear();
+        }
+        return;                        // 结果状态下退格无操作
+    }
     if (m_currentInput.length() > 1) {
         m_currentInput.chop(1);
     } else {
