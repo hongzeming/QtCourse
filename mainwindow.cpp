@@ -24,6 +24,35 @@ MainWindow::MainWindow(QWidget *parent)
     // 数字显示区不抢焦点
     ui->display->setFocusPolicy(Qt::NoFocus);
 
+    // ---- 界面样式表（手机计算器风格） ----
+    setStyleSheet(R"(
+        QWidget#centralwidget { background-color: #1c1c1e; }
+        QLabel#expressionLabel { color: #8e8e93; font-size: 16px; background: transparent; }
+        QLineEdit#display {
+            color: #ffffff; font-size: 36px; font-weight: bold;
+            background: transparent; border: none; padding: 2px 6px;
+        }
+        QPushButton {
+            color: #ffffff; font-size: 22px;
+            background-color: #505050; border: none; border-radius: 22px;
+            min-height: 46px;
+        }
+        QPushButton:hover  { background-color: #6e6e6e; }
+        QPushButton:pressed{ background-color: #8e8e93; }
+        QPushButton#btnClear, QPushButton#btnBackspace {
+            background-color: #d4d4d2; color: #000000;
+        }
+        QPushButton#btnClear:hover, QPushButton#btnBackspace:hover { background-color: #f2f2f2; }
+        QPushButton#btnDivide, QPushButton#btnMultiply,
+        QPushButton#btnMinus,  QPushButton#btnPlus,
+        QPushButton#btnEquals {
+            background-color: #ff9f0a; font-size: 26px;
+        }
+        QPushButton#btnDivide:hover, QPushButton#btnMultiply:hover,
+        QPushButton#btnMinus:hover,  QPushButton#btnPlus:hover,
+        QPushButton#btnEquals:hover  { background-color: #ffb340; }
+    )");
+
     // 让主窗口持有键盘焦点
     setFocusPolicy(Qt::StrongFocus);
     centralWidget()->setFocusPolicy(Qt::StrongFocus);
